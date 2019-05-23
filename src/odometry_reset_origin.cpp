@@ -14,14 +14,9 @@ class ResetOriginOdometry{
 		ros::Publisher pub_odom;
 		tf::TransformBroadcaster tf_broadcaster;
 		/*objects*/
+		nav_msgs::Odometry odom_pub;
 		tf::Quaternion q_ini_position;
 		tf::Quaternion q_ini_orientation;
-		tf::Quaternion q_raw_position;
-		tf::Quaternion q_raw_orientation;
-		tf::Quaternion q_relative_position;
-		tf::Quaternion q_relative_orientation;
-		/*time*/
-		ros::Time time_pub;
 		/*flags*/
 		bool inipose_is_available = false;
 		/*fram_id*/
@@ -45,7 +40,11 @@ ResetOriginOdometry::ResetOriginOdometry()
 
 void ResetOriginOdometry::CallbackOdom(const nav_msgs::OdometryConstPtr& msg)
 {
-	time_pub = msg->header.stamp;
+	tf::Quaternion q_raw_position;
+	tf::Quaternion q_raw_orientation;
+	tf::Quaternion q_relative_position;
+	tf::Quaternion q_relative_orientation;
+
 	q_raw_position = tf::Quaternion(
 		msg->pose.pose.position.x,
 		msg->pose.pose.position.y,
@@ -68,6 +67,16 @@ void ResetOriginOdometry::CallbackOdom(const nav_msgs::OdometryConstPtr& msg)
 		q_relative_position = q_ini_orientation.inverse()*q_relative_position*q_ini_orientation;
 		q_relative_orientation = q_ini_orientation.inverse()*q_raw_orientation;
 
+		/*input*/
+		odom_pub.header.frame_id = parent_frame_id_name;
+		odom_pub.child_frame_id = child_frame_id_name;
+		odom_pub.header.stamp = msg->header.stamp;
+		odom_pub.pose.pose.position.x = q_relative_position.x();
+		odom_pub.pose.pose.position.y = q_relative_position.y();
+		odom_pub.pose.pose.position.z = q_relative_position.z();
+		quaternionTFToMsg(q_relative_orientation, odom_pub.pose.pose.orientation);
+		odom_pub.twist = msg->twist;
+
 		Publication();
 	}
 }
@@ -75,14 +84,6 @@ void ResetOriginOdometry::CallbackOdom(const nav_msgs::OdometryConstPtr& msg)
 void ResetOriginOdometry::Publication(void)
 {
 	/*publish*/
-	nav_msgs::Odometry odom_pub;
-	odom_pub.header.frame_id = parent_frame_id_name;
-	odom_pub.child_frame_id = child_frame_id_name;
-	odom_pub.header.stamp = time_pub;
-	odom_pub.pose.pose.position.x = q_relative_position.x();
-	odom_pub.pose.pose.position.y = q_relative_position.y();
-	odom_pub.pose.pose.position.z = q_relative_position.z();
-	quaternionTFToMsg(q_relative_orientation, odom_pub.pose.pose.orientation);
 	pub_odom.publish(odom_pub);
 	/*tf broadcast*/
     geometry_msgs::TransformStamped transform;
