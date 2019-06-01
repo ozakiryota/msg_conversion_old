@@ -11,9 +11,9 @@ class OdometryZXYToXYZ{
 		ros::Subscriber sub_odom;
 		/*publisher*/
 		ros::Publisher pub_odom;
+		tf::TransformBroadcaster tf_broadcaster;
 		/*objects*/
 		nav_msgs::Odometry odom_pub;
-		tf::TransformBroadcaster tf_broadcaster;
 		/*fram_id*/
 		std::string parent_frame_id_name;
 		std::string child_frame_id_name;
