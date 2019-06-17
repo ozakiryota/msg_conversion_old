@@ -1,0 +1,24 @@
+<launch>
+	<!-- global rosparam -->
+	<param name="use_sim_time" value="true"/>
+
+	<!-- rosbag -->
+	<node pkg="rosbag" type="play" name="player" args="--clock /home/amsl/ozaki/bagfiles/infant/mocap/0119_infant/2019-01-19-18-26-15.bag -s 70"/>
+
+	<!-- rviz -->
+	<node pkg="rviz" type="rviz" name="rviz_perspective" args="-d $(find gaussian_sphere_slam)rviz_config/wall_ekf_slam.rviz"/>
+
+	<!-- sensor driver -->
+	<node pkg="pose_estimation_walls" name="odom_republish_infant" type="odom_republish_infant"/>
+
+	<!-- proposed method -->
+	<node pkg="gyrodometry" name="initial_alignment" type="initial_alignment" output="screen">
+		<param name="initial_orientation_is_0001" type="bool" value="true"/>
+	</node>
+	<node pkg="gyrodometry" name="gyrodometry3d" type="gyrodometry3d" output="screen">
+		<remap from="/odom" to="/tinypower/odom/republished"/>
+	</node>
+	<node pkg="msg_conversion" type="odometry_3d_to_2d" name="odometry_3d_to_2d">
+		<remap from="/odom" to="/gyrodometry"/>
+	</node>
+</launch>

@@ -2,7 +2,7 @@
 #include <nav_msgs/Odometry.h>
 #include <tf/transform_broadcaster.h>
 
-class OdometryZXYToXYZ{
+class Odometry3dTo2d{
 	private:
 		/*node handle*/
 		ros::NodeHandle nh;
@@ -18,38 +18,39 @@ class OdometryZXYToXYZ{
 		std::string parent_frame_id_name;
 		std::string child_frame_id_name;
 	public:
-		OdometryZXYToXYZ();
+		Odometry3dTo2d();
 		void CallbackOdom(const nav_msgs::OdometryConstPtr& msg);
 		void Publication(void);
 };
 
-OdometryZXYToXYZ::OdometryZXYToXYZ()
+Odometry3dTo2d::Odometry3dTo2d()
 	: nhPrivate("~")
 {
-	sub_odom = nh.subscribe("/odom", 1, &OdometryZXYToXYZ::CallbackOdom, this);
-	pub_odom = nh.advertise<nav_msgs::Odometry>("/odom/change_axis", 1);
+	sub_odom = nh.subscribe("/odom", 1, &Odometry3dTo2d::CallbackOdom, this);
+	pub_odom = nh.advertise<nav_msgs::Odometry>("/odom/3dto2d", 1);
 
 	nhPrivate.param("parent_frame_id", parent_frame_id_name, std::string("/odom"));
-	nhPrivate.param("child_frame_id", child_frame_id_name, std::string("/odom/change_axis"));
+	nhPrivate.param("child_frame_id", child_frame_id_name, std::string("/odom/3dto2d"));
 }
 
-void OdometryZXYToXYZ::CallbackOdom(const nav_msgs::OdometryConstPtr& msg)
+void Odometry3dTo2d::CallbackOdom(const nav_msgs::OdometryConstPtr& msg)
 {
-	odom_pub.header.stamp = msg->header.stamp;
-	odom_pub.header.frame_id = parent_frame_id_name;
+	odom_pub = *msg;
 	odom_pub.child_frame_id = child_frame_id_name;
-	odom_pub.pose.pose.position.x = msg->pose.pose.position.z;
-	odom_pub.pose.pose.position.y = msg->pose.pose.position.x;
-	odom_pub.pose.pose.position.z = msg->pose.pose.position.y;
-	odom_pub.pose.pose.orientation.x = msg->pose.pose.orientation.z;
-	odom_pub.pose.pose.orientation.y = msg->pose.pose.orientation.x;
-	odom_pub.pose.pose.orientation.z = msg->pose.pose.orientation.y;
-	odom_pub.pose.pose.orientation.w = msg->pose.pose.orientation.w;
+	/*position*/
+	odom_pub.pose.pose.position.z = 0.0;
+	/*orientation*/
+	tf::Quaternion q_orientation;
+	quaternionMsgToTF(msg->pose.pose.orientation, q_orientation);
+	double r, p, y;
+	tf::Matrix3x3(q_orientation).getRPY(r, p, y);
+	q_orientation = tf::createQuaternionFromRPY(0.0, 0.0, y);
+	quaternionTFToMsg(q_orientation, odom_pub.pose.pose.orientation);
 
 	Publication();
 }
 
-void OdometryZXYToXYZ::Publication(void)
+void Odometry3dTo2d::Publication(void)
 {
 	/*publish*/
 	pub_odom.publish(odom_pub);
@@ -66,9 +67,9 @@ void OdometryZXYToXYZ::Publication(void)
 
 int main(int argc, char** argv)
 {
-	ros::init(argc, argv, "odometry_zxy_to_xyz");
+	ros::init(argc, argv, "odometry_3d_to_2d");
 
-	OdometryZXYToXYZ odometry_zxy_to_xyz;
+	Odometry3dTo2d odometry_3d_to_2d;
 
 	ros::spin();
 }
