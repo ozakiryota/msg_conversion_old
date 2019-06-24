@@ -20,5 +20,6 @@
 	</node>
 	<node pkg="msg_conversion" type="odometry_3d_to_2d" name="odometry_3d_to_2d">
 		<remap from="/odom" to="/gyrodometry"/>
+		<!-- <param name="child_frame_id" type="string" value="/odom/3dto2d"/> -->
 	</node>
 </launch>
