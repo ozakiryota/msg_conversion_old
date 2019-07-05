@@ -15,6 +15,7 @@ class OdometryToRPY{
 	public:
 		OdometryToRPY();
 		void CallbackOdom(const nav_msgs::OdometryConstPtr& msg);
+		void Print(nav_msgs::Odometry odom, std_msgs::Float64MultiArray rpy);
 };
 
 OdometryToRPY::OdometryToRPY()
@@ -32,6 +33,21 @@ void OdometryToRPY::CallbackOdom(const nav_msgs::OdometryConstPtr& msg)
 	tf::Matrix3x3(q_orientation).getRPY(rpy_pub.data[0], rpy_pub.data[1], rpy_pub.data[2]);
 	for(int i=0;i<3;i++)	rpy_pub.data[i] = rpy_pub.data[i]/M_PI*180.0;
 	pub_rpy.publish(rpy_pub);
+	Print(*msg, rpy_pub);
+}
+
+void OdometryToRPY::Print(nav_msgs::Odometry odom, std_msgs::Float64MultiArray rpy)
+{
+	std::cout 
+		<< "(x, y, z) = "
+		<< odom.pose.pose.position.x << "," 
+		<< odom.pose.pose.position.y << "," 
+		<< odom.pose.pose.position.z << std::endl;
+	std::cout 
+		<< "(r, p, y) = "
+		<< rpy.data[0] << "," 
+		<< rpy.data[1] << "," 
+		<< rpy.data[2] << std::endl;
 }
 
 int main(int argc, char** argv)
