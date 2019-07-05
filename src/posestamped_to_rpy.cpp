@@ -39,15 +39,15 @@ void PoseStampedToRPY::Print(geometry_msgs::PoseStamped pose, std_msgs::Float64M
 {
 	std::cout 
 		<< "(x, y, z) = "
-		<< pose.pose.position.x << "," 
-		<< pose.pose.position.y << "," 
+		<< pose.pose.position.x << ", " 
+		<< pose.pose.position.y << ", " 
 		<< pose.pose.position.z << std::endl;
 	double d = sqrt(pose.pose.position.x*pose.pose.position.x + pose.pose.position.y*pose.pose.position.y + pose.pose.position.z*pose.pose.position.z);
 	std::cout << "Euclidian distance = " << d << std::endl;
 	std::cout 
 		<< "(r, p, y) = "
-		<< rpy.data[0] << "," 
-		<< rpy.data[1] << "," 
+		<< rpy.data[0] << ", "
+		<< rpy.data[1] << ", "
 		<< rpy.data[2] << std::endl;
 }
 

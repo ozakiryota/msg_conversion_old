@@ -41,15 +41,15 @@ void OdometryToRPY::Print(nav_msgs::Odometry odom, std_msgs::Float64MultiArray r
 	std::cout << "----- " << odom.child_frame_id << " -----" << std::endl;
 	std::cout 
 		<< "(x, y, z) = "
-		<< odom.pose.pose.position.x << "," 
-		<< odom.pose.pose.position.y << "," 
+		<< odom.pose.pose.position.x << ", " 
+		<< odom.pose.pose.position.y << ", " 
 		<< odom.pose.pose.position.z << std::endl;
 	double d = sqrt(odom.pose.pose.position.x*odom.pose.pose.position.x + odom.pose.pose.position.y*odom.pose.pose.position.y + odom.pose.pose.position.z*odom.pose.pose.position.z);
 	std::cout << "Euclidian distance = " << d << std::endl;
 	std::cout 
 		<< "(r, p, y) = "
-		<< rpy.data[0] << "," 
-		<< rpy.data[1] << "," 
+		<< rpy.data[0] << ", " 
+		<< rpy.data[1] << ", " 
 		<< rpy.data[2] << std::endl;
 }
 
