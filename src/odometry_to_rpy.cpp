@@ -38,6 +38,7 @@ void OdometryToRPY::CallbackOdom(const nav_msgs::OdometryConstPtr& msg)
 
 void OdometryToRPY::Print(nav_msgs::Odometry odom, std_msgs::Float64MultiArray rpy)
 {
+	std::cout << "----- " << odom.child_frame_id << " -----" << std::endl;
 	std::cout 
 		<< "(x, y, z) = "
 		<< odom.pose.pose.position.x << "," 
