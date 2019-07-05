@@ -14,6 +14,7 @@ class PoseStampedToRPY{
 	public:
 		PoseStampedToRPY();
 		void CallbackPose(const geometry_msgs::PoseStampedConstPtr& msg);
+		void Print(geometry_msgs::PoseStamped pose, std_msgs::Float64MultiArray rpy);
 };
 
 PoseStampedToRPY::PoseStampedToRPY()
@@ -31,6 +32,21 @@ void PoseStampedToRPY::CallbackPose(const geometry_msgs::PoseStampedConstPtr& ms
 	tf::Matrix3x3(q_orientation).getRPY(rpy_pub.data[0], rpy_pub.data[1], rpy_pub.data[2]);
 	for(int i=0;i<3;i++)	rpy_pub.data[i] = rpy_pub.data[i]/M_PI*180.0;
 	pub_rpy.publish(rpy_pub);
+	Print(*msg, rpy_pub);
+}
+
+void PoseStampedToRPY::Print(geometry_msgs::PoseStamped pose, std_msgs::Float64MultiArray rpy)
+{
+	std::cout 
+		<< "(x, y, z) = "
+		<< pose.pose.position.x << "," 
+		<< pose.pose.position.y << "," 
+		<< pose.pose.position.z << std::endl;
+	std::cout 
+		<< "(r, p, y) = "
+		<< rpy.data[0] << "," 
+		<< rpy.data[1] << "," 
+		<< rpy.data[2] << std::endl;
 }
 
 int main(int argc, char** argv)
