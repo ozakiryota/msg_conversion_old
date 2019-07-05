@@ -31,7 +31,7 @@ void PoseStampedToOdometry::CallbackPose(const geometry_msgs::PoseStampedConstPt
 {
 	nav_msgs::Odometry odom_pub;
 	odom_pub.header = msg->header;
-	odom_pub.child_frame_id = child_frame_id_name;
+	odom_pub.child_frame_id = child_frame_id_name.c_str();
 	odom_pub.pose.pose = msg->pose;
 	pub_odom.publish(odom_pub);
 }
