@@ -8,7 +8,7 @@
 /* #include <tf/tf.h> */
 /* #include <pcl/common/transforms.h> */
 
-class PCStoreWithOdometry{
+class PCRenameFrameID{
 	private:
 		/*node handle*/
 		ros::NodeHandle nh;
@@ -21,21 +21,21 @@ class PCStoreWithOdometry{
 		std::string frame_name;
 
 	public:
-		PCStoreWithOdometry();
+		PCRenameFrameID();
 		void CallbackPC(const sensor_msgs::PointCloud2ConstPtr& msg);
 };
 
-PCStoreWithOdometry::PCStoreWithOdometry()
+PCRenameFrameID::PCRenameFrameID()
 	: nhPrivate("~")
 {
-	sub_pc = nh.subscribe("/cloud", 1, &PCStoreWithOdometry::CallbackPC, this);
+	sub_pc = nh.subscribe("/cloud", 1, &PCRenameFrameID::CallbackPC, this);
 	pub_pc = nh.advertise<sensor_msgs::PointCloud2>("/cloud/renamed", 1);
 
 	nhPrivate.param("frame_name", frame_name, std::string("/frame"));
 	std::cout << "frame_name = " << frame_name << std::endl;
 }
 
-void PCStoreWithOdometry::CallbackPC(const sensor_msgs::PointCloud2ConstPtr &msg)
+void PCRenameFrameID::CallbackPC(const sensor_msgs::PointCloud2ConstPtr &msg)
 {
 	sensor_msgs::PointCloud2 pc_out;
 	pc_out = *msg;
@@ -45,9 +45,9 @@ void PCStoreWithOdometry::CallbackPC(const sensor_msgs::PointCloud2ConstPtr &msg
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "pc_store_with_odometry");
+    ros::init(argc, argv, "pc_rename_frameid");
 	
-	PCStoreWithOdometry pc_store_with_odometry;
+	PCRenameFrameID pc_rename_frameid;
 
 	ros::spin();
 }
