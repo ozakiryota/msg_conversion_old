@@ -10,6 +10,7 @@ class OdometryYawToQuaternion{
 	private:
 		/*node handle*/
 		ros::NodeHandle nh;
+		ros::NodeHandle nhPrivate;
 		/*subscribe*/
 		ros::Subscriber sub_odom;
 		/*publish*/
@@ -25,6 +26,8 @@ class OdometryYawToQuaternion{
 		bool first_callback_odom = true;
         /*angle*/
         double yaw = 0.0;
+		/*parameters*/
+		double velocity_scalar_ratio;
 	public:
 		OdometryYawToQuaternion();
 		void InitializeOdom(nav_msgs::Odometry& odom);
@@ -32,10 +35,14 @@ class OdometryYawToQuaternion{
 };
 
 OdometryYawToQuaternion::OdometryYawToQuaternion()
+	:nhPrivate("~")
 {
-	sub_odom = nh.subscribe("/odom", 1, &OdometryYawToQuaternion::CallbackOdom, this);
-	pub = nh.advertise<nav_msgs::Odometry>("/odom/yaw_to_quaternion", 1);
+	sub_odom = nh.subscribe("/tinypower/odom", 1, &OdometryYawToQuaternion::CallbackOdom, this);
+	pub = nh.advertise<nav_msgs::Odometry>("/tinypower/odom/republished", 1);
 	InitializeOdom(odom);
+
+	nhPrivate.param("velocity_scalar_ratio", velocity_scalar_ratio, 1.0);
+	std::cout << "velocity_scalar_ratio = " << velocity_scalar_ratio << std::endl;
 }
 
 void OdometryYawToQuaternion::InitializeOdom(nav_msgs::Odometry& odom)
@@ -69,6 +76,7 @@ void OdometryYawToQuaternion::CallbackOdom(const nav_msgs::OdometryConstPtr& msg
 	
     odom.header.stamp = msg->header.stamp;
 	odom.twist = msg->twist;
+	odom.twist.twist.linear.x *= velocity_scalar_ratio;
     pub.publish(odom);
 
     first_callback_odom = false;
