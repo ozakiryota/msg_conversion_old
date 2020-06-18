@@ -56,7 +56,7 @@ CombineRPYLinear::CombineRPYLinear()
 	_sub_imu = _nh.subscribe("/imu/data", 1, &CombineRPYLinear::callbackIMU, this);
 	_sub_odom = _nh.subscribe("/odom", 1, &CombineRPYLinear::callbackOdom, this);
 	/*publisher*/
-	_pub_odom = _nh.advertise<nav_msgs::Odometry>("/compined_odom", 1);
+	_pub_odom = _nh.advertise<nav_msgs::Odometry>("/combined_odom", 1);
 	/*initialize*/
 	initializeOdom(_odom);
 }
