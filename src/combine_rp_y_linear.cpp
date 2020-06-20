@@ -13,6 +13,7 @@ class CombineRPYLinear{
 		/*subscriber*/
 		ros::Subscriber _sub_quat;
 		ros::Subscriber _sub_imu;
+		ros::Subscriber _sub_bias;
 		ros::Subscriber _sub_odom;
 		/*publisher*/
 		ros::Publisher _pub_odom;
@@ -24,9 +25,12 @@ class CombineRPYLinear{
 		tf::Quaternion _attitude{0.0, 0.0, 0.0, 1.0};
 		/*time*/
 		ros::Time _stamp_imu_last;
+		/*bias*/
+		sensor_msgs::Imu _bias;
 		/*flag*/
 		bool _got_first_imu = false;
 		bool _got_first_odom = false;
+		bool _got_bias = false;
 		/*parameter*/
 		bool _linear_vel_is_available;
 		std::string _frame_id;
@@ -36,6 +40,7 @@ class CombineRPYLinear{
 		void initializeOdom(nav_msgs::Odometry& odom);
 		void callbackQuat(const geometry_msgs::QuaternionStampedConstPtr& msg);
 		void callbackIMU(const sensor_msgs::ImuConstPtr& msg);
+		void callbackBias(const sensor_msgs::ImuConstPtr& msg);
 		void callbackOdom(const nav_msgs::OdometryConstPtr& msg);
 		void combineRPY(tf::Quaternion q_rp, tf::Quaternion q_y);
 		void transformAngVel(sensor_msgs::Imu imu, double dt);
@@ -56,6 +61,7 @@ CombineRPYLinear::CombineRPYLinear()
 	/*subscriber*/
 	_sub_quat = _nh.subscribe("/quat", 1, &CombineRPYLinear::callbackQuat, this);
 	_sub_imu = _nh.subscribe("/imu/data", 1, &CombineRPYLinear::callbackIMU, this);
+	_sub_bias = _nh.subscribe("/imu/bias", 1, &CombineRPYLinear::callbackBias, this);
 	_sub_odom = _nh.subscribe("/odom", 1, &CombineRPYLinear::callbackOdom, this);
 	/*publisher*/
 	_pub_odom = _nh.advertise<nav_msgs::Odometry>("/combined_odom", 1);
@@ -112,6 +118,14 @@ void CombineRPYLinear::callbackIMU(const sensor_msgs::ImuConstPtr& msg)
 	_stamp_imu_last = msg->header.stamp;
 }
 
+void CombineRPYLinear::callbackBias(const sensor_msgs::ImuConstPtr& msg)
+{
+	if(!_got_bias){
+		_bias = *msg;
+		_got_bias = true;
+	}
+}
+
 void CombineRPYLinear::callbackOdom(const nav_msgs::OdometryConstPtr& msg)
 {
 	/*skip first callback*/
@@ -152,10 +166,15 @@ void CombineRPYLinear::combineRPY(tf::Quaternion q_rp, tf::Quaternion q_y)
 void CombineRPYLinear::transformAngVel(sensor_msgs::Imu imu, double dt)
 {
 	/*relative rotation*/
-	double d_r = imu.angular_velocity.x*dt;
-	double d_p = imu.angular_velocity.y*dt;
-	double d_y = imu.angular_velocity.z*dt;
-	tf::Quaternion q_rel_rot = tf::createQuaternionFromRPY(d_r, d_p, d_y);
+	double dr = imu.angular_velocity.x*dt;
+	double dp = imu.angular_velocity.y*dt;
+	double dy = imu.angular_velocity.z*dt;
+	if(_got_bias){
+		dr -= _bias.angular_velocity.x*dt;
+		dp -= _bias.angular_velocity.y*dt;
+		dy -= _bias.angular_velocity.z*dt;
+	}
+	tf::Quaternion q_rel_rot = tf::createQuaternionFromRPY(dr, dp, dy);
 	/*original*/
 	tf::Quaternion q;
 	quaternionMsgToTF(_odom.pose.pose.orientation, q);
