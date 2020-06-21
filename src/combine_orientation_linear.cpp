@@ -5,15 +5,13 @@
 #include <sensor_msgs/Imu.h>
 #include <nav_msgs/Odometry.h>
 
-class CombineRPYLinear{
+class CombineOrientationLinear{
 	private:
 		/*node handle*/
 		ros::NodeHandle _nh;
 		ros::NodeHandle _nhPrivate;
 		/*subscriber*/
 		ros::Subscriber _sub_quat;
-		ros::Subscriber _sub_imu;
-		ros::Subscriber _sub_bias;
 		ros::Subscriber _sub_odom;
 		/*publisher*/
 		ros::Publisher _pub_odom;
@@ -21,32 +19,22 @@ class CombineRPYLinear{
 		/*odom*/
 		nav_msgs::Odometry _odom;
 		nav_msgs::Odometry _odom_cblast;
-		/*time*/
-		ros::Time _stamp_imu_last;
-		/*bias*/
-		sensor_msgs::Imu _bias;
 		/*flag*/
-		bool _got_first_imu = false;
 		bool _got_first_odom = false;
-		bool _got_bias = false;
 		/*parameter*/
 		bool _linear_vel_is_available;
 		std::string _frame_id;
 		std::string _child_frame_id;
 	public:
-		CombineRPYLinear();
+		CombineOrientationLinear();
 		void initializeOdom(nav_msgs::Odometry& odom);
-		void callbackQuat(const geometry_msgs::QuaternionStampedConstPtr& msg);
-		void callbackIMU(const sensor_msgs::ImuConstPtr& msg);
-		void callbackBias(const sensor_msgs::ImuConstPtr& msg);
+		void callbackOrientation(const geometry_msgs::QuaternionStampedConstPtr& msg);
 		void callbackOdom(const nav_msgs::OdometryConstPtr& msg);
-		void combineRPY(tf::Quaternion q_rp, tf::Quaternion q_y);
-		void transformAngVel(sensor_msgs::Imu imu, double dt);
 		void transformLinVel(nav_msgs::Odometry odom_cbnow, double dt);
 		void publication(ros::Time stamp);
 };
 
-CombineRPYLinear::CombineRPYLinear()
+CombineOrientationLinear::CombineOrientationLinear()
 	: _nhPrivate("~")
 {
 	/*parameter*/
@@ -57,17 +45,15 @@ CombineRPYLinear::CombineRPYLinear()
 	_nhPrivate.param("child_frame_id", _child_frame_id, std::string("/combined_odom"));
 	std::cout << "_child_frame_id = " << _child_frame_id << std::endl;
 	/*subscriber*/
-	_sub_quat = _nh.subscribe("/attitude", 1, &CombineRPYLinear::callbackQuat, this);
-	_sub_imu = _nh.subscribe("/imu/data", 1, &CombineRPYLinear::callbackIMU, this);
-	_sub_bias = _nh.subscribe("/imu/bias", 1, &CombineRPYLinear::callbackBias, this);
-	_sub_odom = _nh.subscribe("/odom", 1, &CombineRPYLinear::callbackOdom, this);
+	_sub_quat = _nh.subscribe("/orientation", 1, &CombineOrientationLinear::callbackOrientation, this);
+	_sub_odom = _nh.subscribe("/odom", 1, &CombineOrientationLinear::callbackOdom, this);
 	/*publisher*/
 	_pub_odom = _nh.advertise<nav_msgs::Odometry>("/combined_odom", 1);
 	/*initialize*/
 	initializeOdom(_odom);
 }
 
-void CombineRPYLinear::initializeOdom(nav_msgs::Odometry& odom)
+void CombineOrientationLinear::initializeOdom(nav_msgs::Odometry& odom)
 {
 	odom.header.frame_id = _frame_id;
 	odom.child_frame_id = _child_frame_id;
@@ -80,51 +66,15 @@ void CombineRPYLinear::initializeOdom(nav_msgs::Odometry& odom)
 	odom.pose.pose.orientation.w = 1.0;
 }
 
-void CombineRPYLinear::callbackQuat(const geometry_msgs::QuaternionStampedConstPtr& msg)
+void CombineOrientationLinear::callbackOrientation(const geometry_msgs::QuaternionStampedConstPtr& msg)
 {
-	tf::Quaternion q_rp, q_y;
-	quaternionMsgToTF(msg->quaternion, q_rp);
-	quaternionMsgToTF(_odom.pose.pose.orientation, q_y);
-	/*combine*/
-	combineRPY(q_rp, q_y);
+	/*input*/
+	_odom.pose.pose.orientation = msg->quaternion;
 	/*publication*/
 	publication(msg->header.stamp);
 }
 
-void CombineRPYLinear::callbackIMU(const sensor_msgs::ImuConstPtr& msg)
-{
-	/*skip first callback*/
-	if(!_got_first_imu){
-		_stamp_imu_last = msg->header.stamp;
-		_got_first_imu = true;
-		return;
-	}
-	/*get dt*/
-	double dt;
-	try{
-		dt = (msg->header.stamp - _stamp_imu_last).toSec();
-	}
-	catch(std::runtime_error& ex) {
-		ROS_ERROR("Exception: [%s]", ex.what());
-		return;
-	}
-	/*prediction*/
-	transformAngVel(*msg, dt);
-	/*publication*/
-	publication(msg->header.stamp);
-	/*reset*/
-	_stamp_imu_last = msg->header.stamp;
-}
-
-void CombineRPYLinear::callbackBias(const sensor_msgs::ImuConstPtr& msg)
-{
-	if(!_got_bias){
-		_bias = *msg;
-		_got_bias = true;
-	}
-}
-
-void CombineRPYLinear::callbackOdom(const nav_msgs::OdometryConstPtr& msg)
+void CombineOrientationLinear::callbackOdom(const nav_msgs::OdometryConstPtr& msg)
 {
 	/*skip first callback*/
 	if(!_got_first_odom){
@@ -149,41 +99,7 @@ void CombineRPYLinear::callbackOdom(const nav_msgs::OdometryConstPtr& msg)
 	_odom_cblast = *msg;
 }
 
-void CombineRPYLinear::combineRPY(tf::Quaternion q_rp, tf::Quaternion q_y)
-{
-	double r1, p1, y1, r2, p2, y2;
-	/*RP*/
-	tf::Matrix3x3(q_rp).getRPY(r1, p1, y1);
-	/*Y*/
-	tf::Matrix3x3(q_y).getRPY(r2, p2, y2);
-	/*combine*/
-	tf::Quaternion q = tf::createQuaternionFromRPY(r1, p1, y2);
-	quaternionTFToMsg(q, _odom.pose.pose.orientation);
-}
-
-void CombineRPYLinear::transformAngVel(sensor_msgs::Imu imu, double dt)
-{
-	/*relative rotation*/
-	double dr = imu.angular_velocity.x*dt;
-	double dp = imu.angular_velocity.y*dt;
-	double dy = imu.angular_velocity.z*dt;
-	if(_got_bias){
-		dr -= _bias.angular_velocity.x*dt;
-		dp -= _bias.angular_velocity.y*dt;
-		dy -= _bias.angular_velocity.z*dt;
-	}
-	tf::Quaternion q_rel_rot = tf::createQuaternionFromRPY(dr, dp, dy);
-	/*original*/
-	tf::Quaternion q;
-	quaternionMsgToTF(_odom.pose.pose.orientation, q);
-	/*transform*/
-	tf::Quaternion q_trans = q*q_rel_rot;
-	q_trans.normalize();
-	/*combine*/
-	combineRPY(q, q_trans);
-}
-
-void CombineRPYLinear::transformLinVel(nav_msgs::Odometry odom_cbnow, double dt)
+void CombineOrientationLinear::transformLinVel(nav_msgs::Odometry odom_cbnow, double dt)
 {
 	tf::Quaternion q_ori;
 	quaternionMsgToTF(_odom.pose.pose.orientation, q_ori);
@@ -217,7 +133,7 @@ void CombineRPYLinear::transformLinVel(nav_msgs::Odometry odom_cbnow, double dt)
 	_odom.pose.pose.position.z += q_global_move.z();
 }
 
-void CombineRPYLinear::publication(ros::Time stamp)
+void CombineOrientationLinear::publication(ros::Time stamp)
 {
 	/*publish*/
 	_odom.header.stamp = stamp;
@@ -236,9 +152,9 @@ void CombineRPYLinear::publication(ros::Time stamp)
 
 int main(int argc, char** argv)
 {
-	ros::init(argc, argv, "combine_rp_y_linear");
+	ros::init(argc, argv, "combine_orientation_linear");
 
-	CombineRPYLinear combine_rp_y_linear;
+	CombineOrientationLinear combine_orientation_linear;
 
 	ros::spin();
 }
