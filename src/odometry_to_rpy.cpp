@@ -1,56 +1,71 @@
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
-#include <std_msgs/Float64MultiArray.h>
+#include <geometry_msgs/Vector3Stamped.h>
 #include <tf/tf.h>
 
 class OdometryToRPY{
 	private:
 		/*node handle*/
-		ros::NodeHandle nh;
+		ros::NodeHandle _nh;
 		/*subscriber*/
-		ros::Subscriber sub_odom;
+		ros::Subscriber _sub_odom;
 		/*publisher*/
-		ros::Publisher pub_rpy;
-		/*objects*/
+		ros::Publisher _pub_rpy;
+		/*msg*/
+		geometry_msgs::Vector3Stamped _rpy;
 	public:
 		OdometryToRPY();
-		void CallbackOdom(const nav_msgs::OdometryConstPtr& msg);
-		void Print(nav_msgs::Odometry odom, std_msgs::Float64MultiArray rpy);
+		void callbackOdom(const nav_msgs::OdometryConstPtr& msg);
+		void conversion(nav_msgs::Odometry odom);
+		void print(nav_msgs::Odometry odom);
+		void publication(void);
 };
 
 OdometryToRPY::OdometryToRPY()
 {
-	sub_odom = nh.subscribe("/odom", 1, &OdometryToRPY::CallbackOdom, this);
-	pub_rpy = nh.advertise<std_msgs::Float64MultiArray>("/rpy", 1);
+	_sub_odom = _nh.subscribe("/odom", 1, &OdometryToRPY::callbackOdom, this);
+	_pub_rpy = _nh.advertise<geometry_msgs::Vector3Stamped>("/rpy", 1);
 }
 
-void OdometryToRPY::CallbackOdom(const nav_msgs::OdometryConstPtr& msg)
+void OdometryToRPY::callbackOdom(const nav_msgs::OdometryConstPtr& msg)
 {
-	tf::Quaternion q_orientation;
-	quaternionMsgToTF(msg->pose.pose.orientation, q_orientation);
-	std_msgs::Float64MultiArray rpy_pub;	//[deg]
-	rpy_pub.data.resize(3);
-	tf::Matrix3x3(q_orientation).getRPY(rpy_pub.data[0], rpy_pub.data[1], rpy_pub.data[2]);
-	for(int i=0;i<3;i++)	rpy_pub.data[i] = rpy_pub.data[i]/M_PI*180.0;
-	pub_rpy.publish(rpy_pub);
-	Print(*msg, rpy_pub);
+	conversion(*msg);
+	print(*msg);
+	publication();
 }
 
-void OdometryToRPY::Print(nav_msgs::Odometry odom, std_msgs::Float64MultiArray rpy)
+void OdometryToRPY::conversion(nav_msgs::Odometry odom)
+{
+	_rpy.header = odom.header;
+	tf::Quaternion q;
+	quaternionMsgToTF(odom.pose.pose.orientation, q);
+	tf::Matrix3x3(q).getRPY(_rpy.vector.x, _rpy.vector.y, _rpy.vector.z);
+}
+
+void OdometryToRPY::print(nav_msgs::Odometry odom)
 {
 	std::cout << "----- " << odom.child_frame_id << " -----" << std::endl;
 	std::cout 
-		<< "(x, y, z) = "
+		<< "(x, y, z)[m] = "
 		<< odom.pose.pose.position.x << ", " 
 		<< odom.pose.pose.position.y << ", " 
 		<< odom.pose.pose.position.z << std::endl;
-	double d = sqrt(odom.pose.pose.position.x*odom.pose.pose.position.x + odom.pose.pose.position.y*odom.pose.pose.position.y + odom.pose.pose.position.z*odom.pose.pose.position.z);
+	double d = sqrt(
+		odom.pose.pose.position.x*odom.pose.pose.position.x
+		+ odom.pose.pose.position.y*odom.pose.pose.position.y
+		+ odom.pose.pose.position.z*odom.pose.pose.position.z
+	);
 	std::cout << "Euclidian distance = " << d << std::endl;
 	std::cout 
-		<< "(r, p, y) = "
-		<< rpy.data[0] << ", " 
-		<< rpy.data[1] << ", " 
-		<< rpy.data[2] << std::endl;
+		<< "(r, p, y)[deg] = "
+		<< _rpy.vector.x/M_PI*180.0 << ", " 
+		<< _rpy.vector.y/M_PI*180.0 << ", " 
+		<< _rpy.vector.z/M_PI*180.0 << std::endl;
+}
+
+void OdometryToRPY::publication(void)
+{
+	_pub_rpy.publish(_rpy);
 }
 
 int main(int argc, char** argv)
