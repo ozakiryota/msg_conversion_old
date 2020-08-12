@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   tf
+  PCL
 )
 
 ## System dependencies are found with CMake's conventions
@@ -119,6 +120,7 @@ catkin_package(
 # include_directories(include)
 include_directories(
   ${catkin_INCLUDE_DIRS}
+  ${PCL_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -220,3 +222,5 @@ add_executable(combine_orientation_linear src/combine_orientation_linear.cpp)
 target_link_libraries(combine_orientation_linear ${catkin_LIBRARIES})
 add_executable(ned_to_neu src/ned_to_neu.cpp)
 target_link_libraries(ned_to_neu ${catkin_LIBRARIES})
+add_executable(pc_ned_to_neu src/pc_ned_to_neu.cpp)
+target_link_libraries(pc_ned_to_neu ${catkin_LIBRARIES})

@@ -1,0 +1,15 @@
+<launch>
+	<!-- global rosparam -->
+	<param name="use_sim_time" value="true"/>
+
+	<!-- rosbag -->
+	<node pkg="rosbag" type="play" name="player" args="--clock /home/amsl/ozaki/docker_ws/airsim_ros_wrapper/bagfiles/drone_1cam_lidar_202008091113.bag"/>
+
+	<!-- rviz -->
+	<node pkg="rviz" type="rviz" name="rviz" args="-d $(find msg_conversion)/rviz_config/pc_tf_transform_airsim.rviz"/>
+
+	<!-- main -->
+	<node pkg="msg_conversion" name="pc_ned_to_neu" type="pc_ned_to_neu" output="screen">
+		<remap from="/cloud" to="/airsim_node/drone/lidar/LidarCustom"/>
+	</node>
+</launch>
