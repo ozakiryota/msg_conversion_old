@@ -65,15 +65,11 @@ void PCNEDToNEU::convertNEDToNEU(void)
 
 	if(fields == _list_fields[0]){
 		pcl::PointCloud<pcl::PointXYZ>::Ptr pc (new pcl::PointCloud<pcl::PointXYZ>);
-		pcl::fromROSMsg(_pc_submsg, *pc);
 		flipAxises(pc);
-		pcl::toROSMsg(*pc, _pc_pubmsg);	
 	}
 	else if(fields == _list_fields[1] || fields == _list_fields[2]){
 		pcl::PointCloud<pcl::PointXYZI>::Ptr pc (new pcl::PointCloud<pcl::PointXYZI>);
-		pcl::fromROSMsg(_pc_submsg, *pc);
 		flipAxises(pc);
-		pcl::toROSMsg(*pc, _pc_pubmsg);	
 	}
 	else{
 		std::cout << "This point-type is not supported: fields = " << fields << std::endl;
@@ -84,10 +80,14 @@ void PCNEDToNEU::convertNEDToNEU(void)
 template<typename CloudPtr>
 void PCNEDToNEU::flipAxises(CloudPtr pc)
 {
+	pcl::fromROSMsg(_pc_submsg, *pc);
+
 	for(size_t i=0; i<pc->points.size(); ++i){
 		pc->points[i].y *= -1;
 		pc->points[i].z *= -1;
 	}
+
+	pcl::toROSMsg(*pc, _pc_pubmsg);	
 }
 
 void PCNEDToNEU::publication(void)
