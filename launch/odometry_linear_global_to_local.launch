@@ -1,0 +1,12 @@
+<launch>
+	<!-- global rosparam -->
+	<param name="use_sim_time" value="true"/>
+
+	<!-- rosbag -->
+	<node pkg="rosbag" type="play" name="player" args="--clock /home/amsl/ozaki/docker_ws/airsim_ros_wrapper/bagfiles/drone_1cam_202008020251.bag"/>
+
+	<!-- MAIN -->
+	<node pkg="msg_conversion" type="odometry_linear_global_to_local" name="odometry_linear_global_to_local">
+		<remap from="/odom" to="/airsim_node/drone/odom_local_ned"/>
+	</node>
+</launch>
