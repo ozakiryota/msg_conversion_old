@@ -1,54 +1,65 @@
 #include <ros/ros.h>
-#include <std_msgs/Float64MultiArray.h>
+#include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/Vector3Stamped.h>
 #include <tf/tf.h>
 
 class PoseStampedToRPY{
 	private:
 		/*node handle*/
-		ros::NodeHandle nh;
+		ros::NodeHandle _nh;
 		/*subscriber*/
-		ros::Subscriber sub_pose;
+		ros::Subscriber _sub_pose;
 		/*publisher*/
-		ros::Publisher pub_rpy;
-		/*objects*/
+		ros::Publisher _pub_rpy;
+		/*msg*/
+		geometry_msgs::Vector3Stamped _rpy;
 	public:
 		PoseStampedToRPY();
-		void CallbackPose(const geometry_msgs::PoseStampedConstPtr& msg);
-		void Print(geometry_msgs::PoseStamped pose, std_msgs::Float64MultiArray rpy);
+		void callbackPose(const geometry_msgs::PoseStampedConstPtr msg);
+		void conversion(geometry_msgs::PoseStamped);
+		void print(geometry_msgs::PoseStamped pose);
+		void publication(void);
 };
 
 PoseStampedToRPY::PoseStampedToRPY()
 {
-	sub_pose = nh.subscribe("/pose", 1, &PoseStampedToRPY::CallbackPose, this);
-	pub_rpy = nh.advertise<std_msgs::Float64MultiArray>("/rpy", 1);
+	_sub_pose = _nh.subscribe("/pose", 1, &PoseStampedToRPY::callbackPose, this);
+	_pub_rpy = _nh.advertise<geometry_msgs::Vector3Stamped>("/rpy", 1);
 }
 
-void PoseStampedToRPY::CallbackPose(const geometry_msgs::PoseStampedConstPtr& msg)
+void PoseStampedToRPY::callbackPose(const geometry_msgs::PoseStampedConstPtr msg)
 {
-	tf::Quaternion q_orientation;
-	quaternionMsgToTF(msg->pose.orientation, q_orientation);
-	std_msgs::Float64MultiArray rpy_pub;	//[deg]
-	rpy_pub.data.resize(3);
-	tf::Matrix3x3(q_orientation).getRPY(rpy_pub.data[0], rpy_pub.data[1], rpy_pub.data[2]);
-	for(int i=0;i<3;i++)	rpy_pub.data[i] = rpy_pub.data[i]/M_PI*180.0;
-	pub_rpy.publish(rpy_pub);
-	Print(*msg, rpy_pub);
+	conversion(*msg);
+	print(*msg);
+	publication();
 }
 
-void PoseStampedToRPY::Print(geometry_msgs::PoseStamped pose, std_msgs::Float64MultiArray rpy)
+void PoseStampedToRPY::conversion(geometry_msgs::PoseStamped pose)
 {
+	_rpy.header = pose.header;
+	tf::Quaternion q;
+	quaternionMsgToTF(pose.pose.orientation, q);
+	tf::Matrix3x3(q).getRPY(_rpy.vector.x, _rpy.vector.y, _rpy.vector.z);
+}
+
+void PoseStampedToRPY::print(geometry_msgs::PoseStamped pose)
+{
+	std::cout << "-----" << std::endl;
 	std::cout 
-		<< "(x, y, z) = "
+		<< "(x, y, z)[m] = "
 		<< pose.pose.position.x << ", " 
 		<< pose.pose.position.y << ", " 
 		<< pose.pose.position.z << std::endl;
-	double d = sqrt(pose.pose.position.x*pose.pose.position.x + pose.pose.position.y*pose.pose.position.y + pose.pose.position.z*pose.pose.position.z);
-	std::cout << "Euclidian distance = " << d << std::endl;
 	std::cout 
-		<< "(r, p, y) = "
-		<< rpy.data[0] << ", "
-		<< rpy.data[1] << ", "
-		<< rpy.data[2] << std::endl;
+		<< "(r, p, y)[deg] = "
+		<< _rpy.vector.x/M_PI*180.0 << ", " 
+		<< _rpy.vector.y/M_PI*180.0 << ", " 
+		<< _rpy.vector.z/M_PI*180.0 << std::endl;
+}
+
+void PoseStampedToRPY::publication(void)
+{
+	_pub_rpy.publish(_rpy);
 }
 
 int main(int argc, char** argv)
