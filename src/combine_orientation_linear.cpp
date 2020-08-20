@@ -108,8 +108,8 @@ void CombineOrientationLinear::transformLinVel(nav_msgs::Odometry odom_cbnow, do
 	if(_linear_vel_is_available){
 		tf::Quaternion q_local_move(
 			odom_cbnow.twist.twist.linear.x*dt,
-			0.0,
-			0.0,
+			odom_cbnow.twist.twist.linear.y*dt,
+			odom_cbnow.twist.twist.linear.z*dt,
 			0.0
 		);
 		q_global_move = q_ori*q_local_move*q_ori.inverse();
