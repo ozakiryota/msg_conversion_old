@@ -232,3 +232,5 @@ add_executable(odometry_linear_global_to_local src/odometry_linear_global_to_loc
 target_link_libraries(odometry_linear_global_to_local ${catkin_LIBRARIES})
 add_executable(imu_to_rpy src/imu_to_rpy.cpp)
 target_link_libraries(imu_to_rpy ${catkin_LIBRARIES})
+add_executable(imu_add_noise src/imu_add_noise.cpp)
+target_link_libraries(imu_add_noise ${catkin_LIBRARIES})
