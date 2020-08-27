@@ -18,8 +18,8 @@
 	<node pkg="msg_conversion" type="imu_add_noise" name="imu_add_noise" output="screen">
 		<remap from="/imu/data" to="/imu/data/neu"/>
 		<remap from="/imu/data/with_noise" to="/imu/data/neu/with_noise"/>
-		<param name="angular_noise_range" type="double" value="1e-3"/>
-		<param name="linear_noise_range" type="double" value="1e-3"/>
+		<param name="angular_noise_std" type="double" value="1e-1"/>
+		<param name="linear_noise_std" type="double" value="1e-1"/>
 	</node>
 
 	<!-- validation -->
@@ -33,5 +33,26 @@
 		<remap from="/gyrodometry" to="/gyrodometry/with_noise"/>
 		<remap from="/imu/data" to="/imu/data/neu/with_noise"/>
 		<param name="wait_inipose" type="bool" value="false"/>
+	</node>
+	<node pkg="msg_conversion" name="odometry_to_rpy" type="odometry_to_rpy">
+		<remap from="/odom" to="/odom/neu"/>
+		<remap from="/rpy" to="/gt/rpy"/>
+	</node>
+	<node pkg="msg_conversion" type="odometry_to_rpy" name="gyrodometry_to_rpy">
+		<remap from="/odom" to="/gyrodometry"/>
+		<remap from="/rpy" to="/gyrodometry/rpy"/>
+	</node>
+	<node pkg="msg_conversion" type="odometry_to_rpy" name="gyrodometry_to_rpy_with_noise">
+		<remap from="/odom" to="/gyrodometry/with_noise"/>
+		<remap from="/rpy" to="/gyrodometry/with_noise/rpy"/>
+	</node>
+	<param name="erase_old_data" type="bool" value="False"/>
+	<param name="/num_sub" type="int" value="2"/>
+	<param name="/method0" type="str" value="Gyro"/>
+	<param name="/method1" type="str" value="NoiseGyro"/>
+	<node pkg="msg_printer" type="compare_rp_multi_methods.py" name="compare_rp_multi_methods">
+		<remap from="/truth/rpy" to="/gt/rpy"/>
+		<remap from="/estimation0/rpy" to="/gyrodometry/rpy"/>
+		<remap from="/estimation1/rpy" to="/gyrodometry/with_noise/rpy"/>
 	</node>
 </launch>

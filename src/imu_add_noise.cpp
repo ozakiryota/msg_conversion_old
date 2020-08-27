@@ -13,8 +13,8 @@ class ImuAddNoise{
 		/*msg*/
 		sensor_msgs::Imu _imu_with_noise;
 		/*parameter*/
-		double _angular_noise_range;
-		double _linear_noise_range;
+		double _angular_noise_std;
+		double _linear_noise_std;
 	public:
 		ImuAddNoise();
 		void callbackIMU(const sensor_msgs::ImuConstPtr msg);
@@ -27,10 +27,10 @@ ImuAddNoise::ImuAddNoise()
 {
 	std::cout << "--- imu_add_noise ---" << std::endl;
 	/*parameter*/
-	_nhPrivate.param("angular_noise_range", _angular_noise_range, 0.001);
-	std::cout << "_angular_noise_range = " << _angular_noise_range << std::endl;
-	_nhPrivate.param("linear_noise_range", _linear_noise_range, 0.001);
-	std::cout << "_linear_noise_range = " << _linear_noise_range << std::endl;
+	_nhPrivate.param("angular_noise_std", _angular_noise_std, 0.1);
+	std::cout << "_angular_noise_std = " << _angular_noise_std << std::endl;
+	_nhPrivate.param("linear_noise_std", _linear_noise_std, 0.1);
+	std::cout << "_linear_noise_std = " << _linear_noise_std << std::endl;
 	/*subscriber*/
 	_sub_imu = _nh.subscribe("/imu/data", 1, &ImuAddNoise::callbackIMU, this);
 	/*publisher*/
@@ -49,8 +49,8 @@ void ImuAddNoise::addNoise(void)
 	/*random tool*/
 	std::random_device rd;
 	std::mt19937 mt(rd());
-	std::normal_distribution<> nd_angular(-_angular_noise_range, _angular_noise_range);
-	std::normal_distribution<> nd_linear(-_linear_noise_range, _linear_noise_range);
+	std::normal_distribution<> nd_angular(0.0, _angular_noise_std);
+	std::normal_distribution<> nd_linear(0.0, _linear_noise_std);
 	/*add*/
 	_imu_with_noise.angular_velocity.x += nd_angular(mt);
 	_imu_with_noise.angular_velocity.y += nd_angular(mt);
