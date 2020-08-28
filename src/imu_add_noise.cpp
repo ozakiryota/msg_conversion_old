@@ -19,6 +19,7 @@ class ImuAddNoise{
 		ImuAddNoise();
 		void callbackIMU(const sensor_msgs::ImuConstPtr msg);
 		void addNoise(void);
+		void print(sensor_msgs::Imu imu);
 		void publication(void);
 };
 
@@ -41,6 +42,7 @@ void ImuAddNoise::callbackIMU(const sensor_msgs::ImuConstPtr msg)
 {
 	_imu_with_noise = *msg;
 	addNoise();
+	print(*msg);
 	publication();
 }
 
@@ -58,6 +60,29 @@ void ImuAddNoise::addNoise(void)
 	_imu_with_noise.linear_acceleration.x += nd_linear(mt);
 	_imu_with_noise.linear_acceleration.y += nd_linear(mt);
 	_imu_with_noise.linear_acceleration.z += nd_linear(mt);
+}
+
+void ImuAddNoise::print(sensor_msgs::Imu imu)
+{
+	std::cout << "-----" << std::endl;
+	std::cout << "Original:" << std::endl
+		<< "angular_velocity: "
+			<< imu.angular_velocity.x << ", "
+			<< imu.angular_velocity.y << ", "
+			<< imu.angular_velocity.z << std::endl
+		<< "linear_acceleration: "
+			<< imu.linear_acceleration.x << ", "
+			<< imu.linear_acceleration.y << ", "
+			<< imu.linear_acceleration.z << std::endl;
+	std::cout << "With noise:" << std::endl
+		<< "angular_velocity: "
+			<< _imu_with_noise.angular_velocity.x << ", "
+			<< _imu_with_noise.angular_velocity.y << ", "
+			<< _imu_with_noise.angular_velocity.z << std::endl
+		<< "linear_acceleration: "
+			<< _imu_with_noise.linear_acceleration.x << ", "
+			<< _imu_with_noise.linear_acceleration.y << ", "
+			<< _imu_with_noise.linear_acceleration.z << std::endl;
 }
 
 void ImuAddNoise::publication(void)

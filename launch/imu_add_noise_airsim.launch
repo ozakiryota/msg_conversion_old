@@ -1,0 +1,12 @@
+<launch>
+	<!-- global rosparam -->
+	<!-- <param name="use_sim_time" value="true"/> -->
+
+	<!-- MAIN -->
+	<node pkg="msg_conversion" type="imu_add_noise" name="imu_add_noise" output="screen">
+		<remap from="/imu/data" to="/airsim_node/drone/imu/Imu"/>
+		<remap from="/imu/data/with_noise" to="/airsim_node/drone/imu/Imu/with_noise"/>
+		<param name="angular_noise_std" type="double" value="1e-1"/>
+		<param name="linear_noise_std" type="double" value="1e-1"/>
+	</node>
+</launch>
