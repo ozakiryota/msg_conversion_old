@@ -1,0 +1,54 @@
+<launch>
+	<!-- global rosparam -->
+	<param name="use_sim_time" value="true"/>
+
+	<!-- rosbag -->
+	<node pkg="rosbag" type="play" name="player" args="--clock /home/amsl/ozaki/docker_ws/airsim_ros_wrapper/bagfiles/drone_1cam_lidar_noisedimu_202008281137.bag"/>
+
+	<!-- rviz -->
+	<node pkg="rviz" type="rviz" name="rviz" args="-d $(find msg_conversion)/rviz_config/imu_add_noise.rviz"/>
+
+	<!-- NED to NEU -->
+	<node pkg="msg_conversion" type="ned_to_neu" name="ned_to_neu">
+		<remap from="/odom" to="/airsim_node/drone/odom_local_ned"/>
+		<remap from="/imu/data" to="/airsim_node/drone/imu/Imu"/>
+	</node>
+	<node pkg="msg_conversion" type="ned_to_neu" name="ned_to_neu_with_noise">
+		<remap from="/imu/data" to="/airsim_node/drone/imu/Imu/with_noise"/>
+		<remap from="/imu/data/neu" to="/imu/data/neu/with_noise"/>
+	</node>
+
+	<!-- validation -->
+	<node pkg="gyrodometry" type="gyrodometry3d" name="gyrodometry3d">
+		<remap from="/odom" to="/odom/neu"/>
+		<remap from="/imu/data" to="/imu/data/neu"/>
+		<param name="wait_inipose" type="bool" value="false"/>
+	</node>
+	<node pkg="gyrodometry" type="gyrodometry3d" name="gyrodometry3d_with_noise">
+		<remap from="/odom" to="/odom/neu"/>
+		<remap from="/gyrodometry" to="/gyrodometry/with_noise"/>
+		<remap from="/imu/data" to="/imu/data/neu/with_noise"/>
+		<param name="wait_inipose" type="bool" value="false"/>
+	</node>
+	<node pkg="msg_conversion" name="odometry_to_rpy" type="odometry_to_rpy">
+		<remap from="/odom" to="/odom/neu"/>
+		<remap from="/rpy" to="/gt/rpy"/>
+	</node>
+	<node pkg="msg_conversion" type="odometry_to_rpy" name="gyrodometry_to_rpy">
+		<remap from="/odom" to="/gyrodometry"/>
+		<remap from="/rpy" to="/gyrodometry/rpy"/>
+	</node>
+	<node pkg="msg_conversion" type="odometry_to_rpy" name="gyrodometry_to_rpy_with_noise">
+		<remap from="/odom" to="/gyrodometry/with_noise"/>
+		<remap from="/rpy" to="/gyrodometry/with_noise/rpy"/>
+	</node>
+	<param name="erase_old_data" type="bool" value="False"/>
+	<param name="/num_sub" type="int" value="2"/>
+	<param name="/method0" type="str" value="Gyro"/>
+	<param name="/method1" type="str" value="NoiseGyro"/>
+	<node pkg="msg_printer" type="compare_rp_multi_methods.py" name="compare_rp_multi_methods">
+		<remap from="/truth/rpy" to="/gt/rpy"/>
+		<remap from="/estimation0/rpy" to="/gyrodometry/rpy"/>
+		<remap from="/estimation1/rpy" to="/gyrodometry/with_noise/rpy"/>
+	</node>
+</launch>
