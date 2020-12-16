@@ -20,9 +20,11 @@ class PoseStampedResetOrigin{
 		bool _got_first_pose = false;
 		/*parameter*/
 		std::string _parent_frame_id;
+		std::string _child_frame_id;
 	public:
 		PoseStampedResetOrigin();
 		void callbackPose(const geometry_msgs::PoseStampedConstPtr& msg);
+		void conversion(geometry_msgs::PoseStamped now_pose);
 		void publication(void);
 };
 
@@ -33,13 +35,14 @@ PoseStampedResetOrigin::PoseStampedResetOrigin()
 	/*parameter*/
 	_nhPrivate.param("parent_frame_id", _parent_frame_id, std::string("/parent_frame"));
 	std::cout << "_parent_frame_id = " << _parent_frame_id << std::endl;
+	_nhPrivate.param("child_frame_id", _child_frame_id, std::string("/child_frame"));
+	std::cout << "_child_frame_id = " << _child_frame_id << std::endl;
 	/*subscriber*/
 	_sub_pose = _nh.subscribe("/pose", 1, &PoseStampedResetOrigin::callbackPose, this);
 	/*publisher*/
 	_pub_pose = _nh.advertise<geometry_msgs::PoseStamped>("/pose/reset_origin", 1);
 	/*initialization*/
-	_reset_odom.header.frame_id = _parent_frame_id;
-	_reset_odom.child_frame_id = _child_frame_id;
+	_reset_pose.header.frame_id = _parent_frame_id;
 }
 
 void PoseStampedResetOrigin::callbackPose(const geometry_msgs::PoseStampedConstPtr& msg)
@@ -53,44 +56,43 @@ void PoseStampedResetOrigin::callbackPose(const geometry_msgs::PoseStampedConstP
 	publication();
 }
 
-void PoseStampedResetOrigin::conversion(geometry_msgs::PoseStamped now_odom)
+void PoseStampedResetOrigin::conversion(geometry_msgs::PoseStamped now_pose)
 {
 	/*tf*/
 	tf::Quaternion q_ini_orientation;
-	quaternionMsgToTF(_ini_pose.pose.pose.orientation, q_ini_orientation);
+	quaternionMsgToTF(_ini_pose.pose.orientation, q_ini_orientation);
 	tf::Quaternion q_now_orientation;
-	quaternionMsgToTF(now_odom->pose.pose.orientation, q_now_orientation);
+	quaternionMsgToTF(now_pose.pose.orientation, q_now_orientation);
 	/*diff*/
 	tf::Quaternion q_reset_abs_position = tf::Quaternion(
-		odom_now.pose.pose.position.x - _odom_ini.pose.pose.position.x,
-		odom_now.pose.pose.position.y - _odom_ini.pose.pose.position.y,
-		odom_now.pose.pose.position.z - _odom_ini.pose.pose.position.z,
+		now_pose.pose.position.x - _ini_pose.pose.position.x,
+		now_pose.pose.position.y - _ini_pose.pose.position.y,
+		now_pose.pose.position.z - _ini_pose.pose.position.z,
 		0.0
 	);
 	/*rotation*/
-	q_reset_rel_position = q_ini_orientation.inverse()*q_reset_abs_position*q_ini_orientation;
-	q_reset_rel_orientation = q_ini_orientation.inverse()*q_now_orientation;
+	tf::Quaternion q_reset_rel_position = q_ini_orientation.inverse()*q_reset_abs_position*q_ini_orientation;
+	tf::Quaternion q_reset_rel_orientation = q_ini_orientation.inverse()*q_now_orientation;
 	/*input*/
-	_reset_odom.header.stamp = now_odom.header.stamp;
-	_reset_odom.pose.pose.position.x = q_reset_rel_position.x();
-	_reset_odom.pose.pose.position.y = q_reset_rel_position.y();
-	_reset_odom.pose.pose.position.z = q_reset_rel_position.z();
-	quaternionTFToMsg(q_reset_rel_orientation, _reset_odom.pose.pose.orientation);
-	_reset_odom.twist = now_odom.twist;
+	_reset_pose.header.stamp = now_pose.header.stamp;
+	_reset_pose.pose.position.x = q_reset_rel_position.x();
+	_reset_pose.pose.position.y = q_reset_rel_position.y();
+	_reset_pose.pose.position.z = q_reset_rel_position.z();
+	quaternionTFToMsg(q_reset_rel_orientation, _reset_pose.pose.orientation);
 }
 
 void PoseStampedResetOrigin::publication(void)
 {
 	/*msg*/
-	_pub_pose.publish(_reset_odom);
+	_pub_pose.publish(_reset_pose);
 	/*tf*/
     geometry_msgs::TransformStamped tf_transform;
-	tf_transform.header = _reset_odom.header;
-	tf_transform.child_frame_id = _reset_odom.child_frame_id;
-	tf_transform.transform.translation.x = _reset_odom.pose.pose.position.x;
-	tf_transform.transform.translation.y = _reset_odom.pose.pose.position.y;
-	tf_transform.transform.translation.z = _reset_odom.pose.pose.position.z;
-	tf_transform.transform.rotation = _reset_odom.pose.pose.orientation;
+	tf_transform.header = _reset_pose.header;
+	tf_transform.child_frame_id = _child_frame_id;
+	tf_transform.transform.translation.x = _reset_pose.pose.position.x;
+	tf_transform.transform.translation.y = _reset_pose.pose.position.y;
+	tf_transform.transform.translation.z = _reset_pose.pose.position.z;
+	tf_transform.transform.rotation = _reset_pose.pose.orientation;
 	_tf_broadcaster.sendTransform(tf_transform);
 }
 
