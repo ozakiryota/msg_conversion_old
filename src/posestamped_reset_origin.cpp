@@ -1,66 +1,63 @@
 #include <ros/ros.h>
-#include <nav_msgs/Odometry.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <tf/tf.h>
 #include <tf/transform_broadcaster.h>
 
-class OdometryResetOrigin{
+class PoseStampedResetOrigin{
 	private:
 		/*node handle*/
 		ros::NodeHandle _nh;
 		ros::NodeHandle _nhPrivate;
 		/*subscriber*/
-		ros::Subscriber _sub_odom;
+		ros::Subscriber _sub_pose;
 		/*publisher*/
-		ros::Publisher _pub_odom;
+		ros::Publisher _pub_pose;
 		tf::TransformBroadcaster _tf_broadcaster;
 		/*odom*/
-		nav_msgs::Odometry _ini_odom;
-		nav_msgs::Odometry _reset_odom;
+		geometry_msgs::PoseStamped _ini_pose;
+		geometry_msgs::PoseStamped _reset_pose;
 		/*flags*/
-		bool _got_first_odom = false;
+		bool _got_first_pose = false;
 		/*parameter*/
 		std::string _parent_frame_id;
-		std::string _child_frame_id;
 	public:
-		OdometryResetOrigin();
-		void callbackOdom(const nav_msgs::OdometryConstPtr& msg);
+		PoseStampedResetOrigin();
+		void callbackPose(const geometry_msgs::PoseStampedConstPtr& msg);
 		void publication(void);
 };
 
-OdometryResetOrigin::OdometryResetOrigin()
+PoseStampedResetOrigin::PoseStampedResetOrigin()
 	: _nhPrivate("~")
 {
-	std::cout << "--- odometry_reset_origin ---" << std::endl;
+	std::cout << "--- posestamped_reset_origin ---" << std::endl;
 	/*parameter*/
 	_nhPrivate.param("parent_frame_id", _parent_frame_id, std::string("/parent_frame"));
 	std::cout << "_parent_frame_id = " << _parent_frame_id << std::endl;
-	_nhPrivate.param("child_frame_id", _child_frame_id, std::string("/child_frame"));
-	std::cout << "_child_frame_id = " << _child_frame_id << std::endl;
 	/*subscriber*/
-	_sub_odom = _nh.subscribe("/odom", 1, &OdometryResetOrigin::callbackOdom, this);
+	_sub_pose = _nh.subscribe("/pose", 1, &PoseStampedResetOrigin::callbackPose, this);
 	/*publisher*/
-	_pub_odom = _nh.advertise<nav_msgs::Odometry>("/odom/reset_origin", 1);
+	_pub_pose = _nh.advertise<geometry_msgs::PoseStamped>("/pose/reset_origin", 1);
 	/*initialization*/
 	_reset_odom.header.frame_id = _parent_frame_id;
 	_reset_odom.child_frame_id = _child_frame_id;
 }
 
-void OdometryResetOrigin::callbackOdom(const nav_msgs::OdometryConstPtr& msg)
+void PoseStampedResetOrigin::callbackPose(const geometry_msgs::PoseStampedConstPtr& msg)
 {
-	if(!_got_first_odom){
-		_ini_odom = *msg;
-		_got_first_odom = true;
+	if(!_got_first_pose){
+		_ini_pose = *msg;
+		_got_first_pose = true;
 		return;
 	}
 	conversion(*msg);
 	publication();
 }
 
-void OdometryResetOrigin::conversion(nav_msgs::Odometry now_odom)
+void PoseStampedResetOrigin::conversion(geometry_msgs::PoseStamped now_odom)
 {
 	/*tf*/
 	tf::Quaternion q_ini_orientation;
-	quaternionMsgToTF(_ini_odom.pose.pose.orientation, q_ini_orientation);
+	quaternionMsgToTF(_ini_pose.pose.pose.orientation, q_ini_orientation);
 	tf::Quaternion q_now_orientation;
 	quaternionMsgToTF(now_odom->pose.pose.orientation, q_now_orientation);
 	/*diff*/
@@ -82,10 +79,10 @@ void OdometryResetOrigin::conversion(nav_msgs::Odometry now_odom)
 	_reset_odom.twist = now_odom.twist;
 }
 
-void OdometryResetOrigin::publication(void)
+void PoseStampedResetOrigin::publication(void)
 {
 	/*msg*/
-	_pub_odom.publish(_reset_odom);
+	_pub_pose.publish(_reset_odom);
 	/*tf*/
     geometry_msgs::TransformStamped tf_transform;
 	tf_transform.header = _reset_odom.header;
@@ -99,9 +96,9 @@ void OdometryResetOrigin::publication(void)
 
 int main(int argc, char** argv)
 {
-	ros::init(argc, argv, "odometry_reset_origin");
+	ros::init(argc, argv, "posestamped_reset_origin");
 
-	OdometryResetOrigin odometry_reset_origin;
+	PoseStampedResetOrigin posestamped_reset_origin;
 
 	ros::spin();
 }

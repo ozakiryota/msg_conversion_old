@@ -11,7 +11,6 @@
 	<!-- for visualization -->
 	<node pkg="msg_conversion" type="tf_to_posestamped" name="tf_to_posestamped" output="screen">
 		<param name="parent_frame_id" type="string" value="/world"/>
-		<!-- <param name="child_frame_id" type="string" value="/vicon/sensors/sensors"/> -->
 		<param name="child_frame_id" type="string" value="/vicon/sensors/sensors"/>
 	</node>
 </launch>
