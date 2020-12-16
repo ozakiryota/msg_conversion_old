@@ -24,6 +24,7 @@ class OdometryResetOrigin{
 	public:
 		OdometryResetOrigin();
 		void callbackOdom(const nav_msgs::OdometryConstPtr& msg);
+		void conversion(nav_msgs::Odometry now_odom);
 		void publication(void);
 };
 
@@ -62,17 +63,17 @@ void OdometryResetOrigin::conversion(nav_msgs::Odometry now_odom)
 	tf::Quaternion q_ini_orientation;
 	quaternionMsgToTF(_ini_odom.pose.pose.orientation, q_ini_orientation);
 	tf::Quaternion q_now_orientation;
-	quaternionMsgToTF(now_odom->pose.pose.orientation, q_now_orientation);
+	quaternionMsgToTF(now_odom.pose.pose.orientation, q_now_orientation);
 	/*diff*/
 	tf::Quaternion q_reset_abs_position = tf::Quaternion(
-		odom_now.pose.pose.position.x - _odom_ini.pose.pose.position.x,
-		odom_now.pose.pose.position.y - _odom_ini.pose.pose.position.y,
-		odom_now.pose.pose.position.z - _odom_ini.pose.pose.position.z,
+		now_odom.pose.pose.position.x - _ini_odom.pose.pose.position.x,
+		now_odom.pose.pose.position.y - _ini_odom.pose.pose.position.y,
+		now_odom.pose.pose.position.z - _ini_odom.pose.pose.position.z,
 		0.0
 	);
 	/*rotation*/
-	q_reset_rel_position = q_ini_orientation.inverse()*q_reset_abs_position*q_ini_orientation;
-	q_reset_rel_orientation = q_ini_orientation.inverse()*q_now_orientation;
+	tf::Quaternion q_reset_rel_position = q_ini_orientation.inverse()*q_reset_abs_position*q_ini_orientation;
+	tf::Quaternion q_reset_rel_orientation = q_ini_orientation.inverse()*q_now_orientation;
 	/*input*/
 	_reset_odom.header.stamp = now_odom.header.stamp;
 	_reset_odom.pose.pose.position.x = q_reset_rel_position.x();
