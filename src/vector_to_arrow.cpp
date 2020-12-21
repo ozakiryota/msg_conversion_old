@@ -43,7 +43,7 @@ VectorToArrow::VectorToArrow()
 	std::cout << "_shaft_diameter = " << _shaft_diameter << std::endl;
 	/*subscriber*/
 	_sub_vector = _nh.subscribe("/vector", 1, &VectorToArrow::callbackVector, this);
-	/*subscriber*/
+	/*publisher*/
 	_pub_vismarker = _nh.advertise<visualization_msgs::Marker>("/vis/arrow", 1);
 	/*initialize*/
 	initializeVisMarker();
