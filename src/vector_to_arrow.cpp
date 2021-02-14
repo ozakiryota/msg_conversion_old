@@ -19,6 +19,7 @@ class VectorToArrow{
 		std::string _frame_id;
 		double _shaft_length;
 		double _shaft_diameter;
+		double _color_r, _color_b, _color_g, _color_a;
 
 	public:
 		VectorToArrow();
@@ -41,6 +42,14 @@ VectorToArrow::VectorToArrow()
 	std::cout << "_shaft_length = " << _shaft_length << std::endl;
 	_nhPrivate.param("shaft_diameter", _shaft_diameter, 0.25);
 	std::cout << "_shaft_diameter = " << _shaft_diameter << std::endl;
+	_nhPrivate.param("color_r", _color_r, 0.0);
+	std::cout << "_color_r = " << _color_r << std::endl;
+	_nhPrivate.param("color_g", _color_g, 0.0);
+	std::cout << "_color_g = " << _color_g << std::endl;
+	_nhPrivate.param("color_b", _color_b, 0.0);
+	std::cout << "_color_b = " << _color_b << std::endl;
+	_nhPrivate.param("color_a", _color_a, 1.0);
+	std::cout << "_color_a = " << _color_a << std::endl;
 	/*subscriber*/
 	_sub_vector = _nh.subscribe("/vector", 1, &VectorToArrow::callbackVector, this);
 	/*publisher*/
@@ -63,10 +72,10 @@ void VectorToArrow::initializeVisMarker(void)
 	_arrow.scale.x = _shaft_diameter;		//shaft diameter
 	_arrow.scale.y = 1.5*_shaft_diameter;	//head diameter
 	// _arrow.scale.z = 0.25*_shaft_length;	//head length
-	_arrow.color.r = 1.0;
-	_arrow.color.g = 0.0;
-	_arrow.color.b = 1.0;
-	_arrow.color.a = 1.0;
+	_arrow.color.r = _color_r;
+	_arrow.color.g = _color_g;
+	_arrow.color.b = _color_b;
+	_arrow.color.a = _color_a;
 }
 
 void VectorToArrow::callbackVector(const geometry_msgs::Vector3StampedConstPtr& msg)
